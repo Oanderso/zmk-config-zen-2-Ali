@@ -54,7 +54,7 @@
         NAVI {
             display-name = "NAVI";
             bindings = <
-&kt LC(Z)        &kp LC(C)  &kp UP    &kp LC(V)  &msc SCRL_UP    &kp LC(EQUAL)    &rgb_ug RGB_EFF  &rgb_ug RGB_BRI  &rgb_ug RGB_SAI  &rgb_ug RGB_SPI   &rgb_ug RGB_HUI  &kp BSPC
+&kp LC(Z)        &kp LC(C)  &kp UP    &kp LC(V)  &msc SCRL_UP    &kp LC(EQUAL)    &rgb_ug RGB_EFF  &rgb_ug RGB_BRI  &rgb_ug RGB_SAI  &rgb_ug RGB_SPI   &rgb_ug RGB_HUI  &kp BSPC
 &kp LC(Y)        &kp LEFT   &kp DOWN  &kp RIGHT  &msc SCRL_DOWN  &kp LC(MINUS)    &rgb_ug RGB_EFR  &rgb_ug RGB_BRD  &rgb_ug RGB_SAD  &rgb_ug RGB_SPD   &rgb_ug RGB_HUD  &trans
 &kp PRINTSCREEN  &mkp MB3   &mkp MB1  &mkp MB2   &mkp MB4        &mkp MB5         &msc SCRL_LEFT   &msc SCRL_RIGHT  &kp C_VOL_DN     &kp C_PLAY_PAUSE  &kp C_VOLUME_UP  &rgb_ug RGB_TOG
                                       &trans     &trans          &trans           &trans           &trans           &trans
