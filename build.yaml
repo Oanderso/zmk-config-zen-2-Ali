@@ -1,7 +1,7 @@
 include:
   - board: corneish_zen_v2_left
-    snippet: studio-rpc-usb-uart # ZMK Studio (remove to get rid of it)
-    cmake-args: -DCONFIG_ZMK_STUDIO=y # ZMK Studio (remove to get rid of it)
+    #snippet: studio-rpc-usb-uart # ZMK Studio (remove to get rid of it)
+    #cmake-args: -DCONFIG_ZMK_STUDIO=y # ZMK Studio (remove to get rid of it)
     
   - board: corneish_zen_v2_right
   
