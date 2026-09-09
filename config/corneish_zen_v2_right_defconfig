@@ -10,14 +10,11 @@ CONFIG_ZMK_SLEEP=y
 CONFIG_BOARD_ENABLE_DCDC=y
 CONFIG_BOARD_ENABLE_DCDC_HV=y
 
-# Enable MPU
 CONFIG_ARM_MPU=y
-
-# Enable pinctrl/GPIO
 CONFIG_PINCTRL=y
 CONFIG_GPIO=y
 
-# I2C is used by the Azoteq TPS43 / IQS5xx touchpad.
+# Azoteq TPS43 / IQS5xx touchpad.
 CONFIG_I2C=y
 CONFIG_I2C_NRFX=y
 CONFIG_INPUT=y
@@ -25,10 +22,9 @@ CONFIG_INPUT_AZOTEQ_IQS5XX=y
 CONFIG_ZMK_POINTING=y
 CONFIG_ZMK_MOUSE=y
 
-# SPI remains required for the WS2812 underglow.
+# WS2812 underglow remains on SPI3.
 CONFIG_SPI_NRFX=y
 
-# Enable writing to flash
 CONFIG_USE_DT_CODE_PARTITION=y
 CONFIG_BUILD_OUTPUT_UF2=y
 CONFIG_MPU_ALLOW_FLASH_WRITE=y
@@ -38,31 +34,20 @@ CONFIG_FLASH=y
 CONFIG_FLASH_PAGE_LAYOUT=y
 CONFIG_FLASH_MAP=y
 
-# Enable 32kHz crystal
 CONFIG_CLOCK_CONTROL_NRF_K32SRC_XTAL=y
 CONFIG_CLOCK_CONTROL_NRF_K32SRC_30PPM=y
 
-CONFIG_ZMK_USB=n
+# Right is the host-facing central half.
+CONFIG_ZMK_SPLIT_ROLE_CENTRAL=y
+CONFIG_ZMK_USB=y
 CONFIG_ZMK_BLE=y
 
 # The right e-ink display is physically removed.
 CONFIG_ZMK_DISPLAY=n
 
-# Turn on logging for touchpad bring-up if needed:
-# CONFIG_LOG=y
-# CONFIG_ZMK_LOG_LEVEL_DBG=y
-# CONFIG_I2C_LOG_LEVEL_DBG=y
-# CONFIG_INPUT_LOG_LEVEL_DBG=y
-
-# EXT POWER
 CONFIG_ZMK_EXT_POWER=y
-
-# BLE passkey / bond handling
 CONFIG_ZMK_BLE_PASSKEY_ENTRY=n
 CONFIG_ZMK_BLE_CLEAR_BONDS_ON_START=n
-
-# USB name (USB is disabled on this peripheral half, retained for compatibility)
 CONFIG_USB_DEVICE_MANUFACTURER="corne_epd"
-
 CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
 CONFIG_ZMK_HID_REPORT_TYPE_NKRO=n
