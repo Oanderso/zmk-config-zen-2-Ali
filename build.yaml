@@ -1,9 +1,11 @@
 include:
   - board: corneish_zen_v2_left
-    #snippet: studio-rpc-usb-uart # ZMK Studio (remove to get rid of it)
-    #cmake-args: -DCONFIG_ZMK_STUDIO=y # ZMK Studio (remove to get rid of it)
-    
+
   - board: corneish_zen_v2_right
-  
+    # zmk-input-inertia revision 57cea03 predates its upstream GitHub Actions
+    # include-path fix. Keep that revision for the ZMK v0.3 endpoint API, and
+    # supply the missing ZMK application include directory to this build only.
+    cmake-args: -DCMAKE_C_FLAGS=-I${GITHUB_WORKSPACE}/zmk/app/include
+
   - board: nice_nano_v2
     shield: settings_reset
