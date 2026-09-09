@@ -6,18 +6,20 @@
 */
 #include "corneish_zen.dtsi"
 #include <dt-bindings/led/led.h>
+#include <zmk-input-inertia/input/processor/input_inertia.dtsi>
 
-
-/{
+/ {
     chosen {
-        zephyr,display = &epd;
+        /* The physical right-side e-ink panel has been removed. */
+        /delete-property/ zephyr,display;
+        /delete-property/ zmk,display;
         zmk,battery = &vbatt;
         zmk,underglow = &led_strip;
     };
 
     kscan0: kscan {
         compatible = "zmk,kscan-gpio-matrix";
- wakeup-source;
+        wakeup-source;
         diode-direction = "col2row";
         row-gpios
             = <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
@@ -27,35 +29,38 @@
             ;
 
         col-gpios
-           = <&gpio1 11 GPIO_ACTIVE_HIGH>
+            = <&gpio1 11 GPIO_ACTIVE_HIGH>
             , <&gpio1 13 GPIO_ACTIVE_HIGH>
             , <&gpio1 15 GPIO_ACTIVE_HIGH>
             , <&gpio0 2 GPIO_ACTIVE_HIGH>
-            , <&gpio0  29 GPIO_ACTIVE_HIGH>
-            , <&gpio0  31 GPIO_ACTIVE_HIGH>
+            , <&gpio0 29 GPIO_ACTIVE_HIGH>
+            , <&gpio0 31 GPIO_ACTIVE_HIGH>
             ;
     };
-
-    //leds {
-     //   compatible = "gpio-leds";
-     //   blue_led: led_0 {
-     //       gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
-     //   };
-   // };
 
     ext-power {
         compatible = "zmk,ext-power-generic";
         label = "EXT_POWER";
         control-gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
-         init-delay-ms = <50>;
+        init-delay-ms = <50>;
     };
 
-     vbatt: vbatt {
+    vbatt: vbatt {
         compatible = "zmk,battery-nrf-vddh";
-  //      init-delay-ms = <50>;
     };
 
+    /*
+     * The right half is now the split central, so the TPS43 feeds ZMK's
+     * pointing pipeline directly. Cursor inertia therefore runs locally and
+     * does not consume split-link bandwidth.
+     */
+    tps43_input: tps43_input {
+        compatible = "zmk,input-listener";
+        device = <&tps43>;
+        input-processors = <&zip_inertia>;
+    };
 };
+
 &default_transform {
     col-offset = <6>;
 };
@@ -63,60 +68,68 @@
 &five_column_transform {
     col-offset = <6>;
 };
-//&kscan0 {
- //   col-gpios
-  //      = <&gpio1 11 GPIO_ACTIVE_HIGH>
-   //         , <&gpio1 13 GPIO_ACTIVE_HIGH>
-   //         , <&gpio1 15 GPIO_ACTIVE_HIGH>
-    //        , <&gpio0 2 GPIO_ACTIVE_HIGH>
-    //        , <&gpio0  29 GPIO_ACTIVE_HIGH>
-    //        , <&gpio0  31 GPIO_ACTIVE_HIGH>
-    //    ;
-//};
+
+/* Trackball-like cursor momentum. */
+&zip_inertia {
+    trigger-ms = <30>;
+    move-decay-factor-int = <93>;
+    move-report-interval-ms = <20>;
+    move-threshold-start = <8>;
+    move-threshold-stop = <1>;
+
+    scroll-decay-factor-int = <85>;
+    scroll-report-interval-ms = <50>;
+    scroll-threshold-start = <2>;
+    scroll-threshold-stop = <0>;
+};
+
+/* Disable the right-side display inherited from the stock Zen v2 board DTS. */
+&epd {
+    status = "disabled";
+};
+
+&spi0 {
+    status = "disabled";
+};
+
 &spi3 {
     compatible = "nordic,nrf-spim";
     status = "okay";
-
     pinctrl-0 = <&spi3_default>;
     pinctrl-1 = <&spi3_sleep>;
     pinctrl-names = "default", "sleep";
 
     led_strip: ws2812@0 {
         compatible = "worldsemi,ws2812-spi";
-
-        /* SPI */
-        reg = <0>; /* ignored, but necessary for SPI bindings */
+        reg = <0>;
         spi-max-frequency = <4000000>;
-
-        /* WS2812 */
-        chain-length = <12>; /* 40 keys have underglow at the moment */
+        chain-length = <12>;
         spi-one-frame = <0x70>;
         spi-zero-frame = <0x40>;
-
         color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
     };
 };
 
 &pinctrl {
-    spi0_default: spi0_default {
+    /* Former display header: P0.17 = SDA, P0.20 = SCL. */
+    i2c0_default: i2c0_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_SCK, 0, 20)>,
-                <NRF_PSEL(SPIM_MOSI, 0, 17)>,
-                <NRF_PSEL(SPIM_MISO, 0, 5)>;
+            psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
+                    <NRF_PSEL(TWIM_SCL, 0, 20)>;
         };
     };
 
-    spi0_sleep: spi0_sleep {
+    i2c0_sleep: i2c0_sleep {
         group1 {
-            psels = <NRF_PSEL(SPIM_SCK, 0, 20)>,
-                <NRF_PSEL(SPIM_MOSI, 0, 17)>,
-                <NRF_PSEL(SPIM_MISO, 0, 5)>;
+            psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
+                    <NRF_PSEL(TWIM_SCL, 0, 20)>;
             low-power-enable;
         };
     };
+
     spi3_default: spi3_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>; // WS2812_VEXT_DATA
+            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>;
         };
     };
 
@@ -128,25 +141,35 @@
     };
 };
 
-&spi0 {
+&i2c0 {
     status = "okay";
-    compatible = "nordic,nrf-spim";
-    pinctrl-0 = <&spi0_default>;
-    pinctrl-1 = <&spi0_sleep>;
+    compatible = "nordic,nrf-twim";
+    pinctrl-0 = <&i2c0_default>;
+    pinctrl-1 = <&i2c0_sleep>;
     pinctrl-names = "default", "sleep";
-    cs-gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+    clock-frequency = <400000>;
 
-    epd: il0323@0 {
-        compatible = "gooddisplay,il0323";
-        reg =  <0>;
-        width = <80>;
-        height = <128>;
-        spi-max-frequency = <4000000>;
-        dc-gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
-        busy-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+    tps43: iqs5xx@74 {
+        status = "okay";
+        compatible = "azoteq,iqs5xx";
+        reg = <0x74>;
+
+        /* Former display control pins: P1.04 = nRST, P1.06 = RDY. */
         reset-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
-        pwr = [03 00 26 26];
-        cdi = <0xd2>;
-        tcon = <0x22>;
+        rdy-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+
+        one-finger-tap;
+        two-finger-tap;
+        press-and-hold;
+        press-and-hold-time = <250>;
+
+        scroll;
+        natural-scroll-x;
+        natural-scroll-y;
+
+        bottom-beta = <5>;
+        stationary-threshold = <5>;
+
+        /* Add switch-xy / flip-x / flip-y here if mounting orientation needs it. */
     };
 };
