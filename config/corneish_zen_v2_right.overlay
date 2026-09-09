@@ -6,9 +6,12 @@
 */
 #include "corneish_zen.dtsi"
 #include <dt-bindings/led/led.h>
+#include <zmk-input-inertia/input/processor/input_inertia.dtsi>
 
 / {
     chosen {
+        /* The physical right-side e-ink panel has been removed. */
+        /delete-property/ zephyr,display;
         zmk,battery = &vbatt;
         zmk,underglow = &led_strip;
     };
@@ -44,6 +47,17 @@
     vbatt: vbatt {
         compatible = "zmk,battery-nrf-vddh";
     };
+
+    /*
+     * The right half is now the split central, so the TPS43 feeds ZMK's
+     * pointing pipeline directly. Cursor inertia therefore runs locally and
+     * does not consume split-link bandwidth.
+     */
+    tps43_input: tps43_input {
+        compatible = "zmk,input-listener";
+        device = <&tps43>;
+        input-processors = <&zip_inertia>;
+    };
 };
 
 &default_transform {
@@ -54,36 +68,49 @@
     col-offset = <6>;
 };
 
+/* Trackball-like cursor momentum. */
+&zip_inertia {
+    trigger-ms = <30>;
+    move-decay-factor-int = <93>;
+    move-report-interval-ms = <20>;
+    move-threshold-start = <8>;
+    move-threshold-stop = <1>;
+
+    scroll-decay-factor-int = <85>;
+    scroll-report-interval-ms = <50>;
+    scroll-threshold-start = <2>;
+    scroll-threshold-stop = <0>;
+};
+
+/* Disable the right-side display inherited from the stock Zen v2 board DTS. */
+&epd {
+    status = "disabled";
+};
+
+&spi0 {
+    status = "disabled";
+};
+
 &spi3 {
     compatible = "nordic,nrf-spim";
     status = "okay";
-
     pinctrl-0 = <&spi3_default>;
     pinctrl-1 = <&spi3_sleep>;
     pinctrl-names = "default", "sleep";
 
     led_strip: ws2812@0 {
         compatible = "worldsemi,ws2812-spi";
-
-        /* SPI */
-        reg = <0>; /* ignored, but necessary for SPI bindings */
+        reg = <0>;
         spi-max-frequency = <4000000>;
-
-        /* WS2812 */
         chain-length = <12>;
         spi-one-frame = <0x70>;
         spi-zero-frame = <0x40>;
-
         color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
     };
 };
 
 &pinctrl {
-    /*
-     * TPS43 / IQS5xx I2C, reusing the former right-side EPD SPI pins:
-     *   P0.17 = SDA (former MOSI)
-     *   P0.20 = SCL (former SCK)
-     */
+    /* Former display header: P0.17 = SDA, P0.20 = SCL. */
     i2c0_default: i2c0_default {
         group1 {
             psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
@@ -101,7 +128,7 @@
 
     spi3_default: spi3_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>; // WS2812_VEXT_DATA
+            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>;
         };
     };
 
@@ -126,15 +153,10 @@
         compatible = "azoteq,iqs5xx";
         reg = <0x74>;
 
-        /*
-         * Reuse the old EPD control pins:
-         *   P1.04 = nRST
-         *   P1.06 = RDY
-         */
+        /* Former display control pins: P1.04 = nRST, P1.06 = RDY. */
         reset-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
         rdy-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 
-        /* Native TPS43 gestures handled by the IQS5xx driver. */
         one-finger-tap;
         two-finger-tap;
         press-and-hold;
@@ -144,20 +166,9 @@
         natural-scroll-x;
         natural-scroll-y;
 
-        /* Conservative filtering defaults from the IQS5xx ZMK driver. */
         bottom-beta = <5>;
         stationary-threshold = <5>;
 
-        /*
-         * If the physical mounting rotates/inverts the pad, add one or more:
-         *   switch-xy;
-         *   flip-x;
-         *   flip-y;
-         */
+        /* Add switch-xy / flip-x / flip-y here if mounting orientation needs it. */
     };
-};
-
-/* Forward the right-side TPS43 to the left/central half over ZMK split. */
-&tps43_split {
-    device = <&tps43>;
 };
