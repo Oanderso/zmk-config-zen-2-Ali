@@ -69,16 +69,21 @@
     col-offset = <6>;
 };
 
-/* Trackball-like cursor momentum. */
+/*
+ * Trackball-like cursor momentum, tuned for a ~60 Hz update cadence.
+ * The shorter 16 ms reporting intervals reduce visible stepping. Decay values
+ * are raised to preserve roughly the same overall glide duration as the
+ * original 20 ms / 93% movement and 50 ms / 85% scroll settings.
+ */
 &zip_inertia {
     trigger-ms = <30>;
-    move-decay-factor-int = <93>;
-    move-report-interval-ms = <20>;
+    move-decay-factor-int = <94>;
+    move-report-interval-ms = <16>;
     move-threshold-start = <8>;
     move-threshold-stop = <1>;
 
-    scroll-decay-factor-int = <85>;
-    scroll-report-interval-ms = <50>;
+    scroll-decay-factor-int = <95>;
+    scroll-report-interval-ms = <16>;
     scroll-threshold-start = <2>;
     scroll-threshold-stop = <0>;
 };
