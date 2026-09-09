@@ -7,7 +7,6 @@
 
 #include "corneish_zen.dtsi"
 #include <dt-bindings/led/led.h>
-#include <zmk-input-inertia/input/processor/input_inertia.dtsi>
 
 / {
     chosen {
@@ -49,38 +48,6 @@
     };
 };
 
-/*
- * The TPS43 is physically on the right peripheral. The input-split device in
- * corneish_zen.dtsi recreates its relative pointer events here on the central
- * half; this listener turns those events into HID mouse reports.
- */
-&tps43_listener {
-    status = "okay";
-    input-processors = <&zip_inertia>;
-};
-
-/*
- * Trackball-like cursor momentum.
- *
- * TPS43 update rate is roughly 80 Hz, so 30 ms gives the processor enough
- * silence to distinguish a finger lift from ordinary packet jitter. The 93%
- * decay provides a noticeable glide without allowing long runaway motion.
- */
-&zip_inertia {
-    trigger-ms = <30>;
-
-    move-decay-factor-int = <93>;
-    move-report-interval-ms = <20>;
-    move-threshold-start = <8>;
-    move-threshold-stop = <1>;
-
-    /* Keep wheel inertia conservative; native two-finger scrolling still works. */
-    scroll-decay-factor-int = <85>;
-    scroll-report-interval-ms = <50>;
-    scroll-threshold-start = <2>;
-    scroll-threshold-stop = <0>;
-};
-
 &pinctrl {
     spi0_default: spi0_default {
         group1 {
@@ -101,7 +68,7 @@
 
     spi3_default: spi3_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>; // WS2812_VEXT_DATA
+            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>;
         };
     };
 
@@ -139,23 +106,17 @@
 &spi3 {
     compatible = "nordic,nrf-spim";
     status = "okay";
-
     pinctrl-0 = <&spi3_default>;
     pinctrl-1 = <&spi3_sleep>;
     pinctrl-names = "default", "sleep";
 
     led_strip: ws2812@0 {
         compatible = "worldsemi,ws2812-spi";
-
-        /* SPI */
-        reg = <0>; /* ignored, but necessary for SPI bindings */
+        reg = <0>;
         spi-max-frequency = <4000000>;
-
-        /* WS2812 */
         chain-length = <12>;
         spi-one-frame = <0x70>;
         spi-zero-frame = <0x40>;
-
         color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
     };
 };
