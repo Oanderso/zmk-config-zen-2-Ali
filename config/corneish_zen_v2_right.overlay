@@ -12,6 +12,7 @@
     chosen {
         /* The physical right-side e-ink panel has been removed. */
         /delete-property/ zephyr,display;
+        /delete-property/ zmk,display;
         zmk,battery = &vbatt;
         zmk,underglow = &led_strip;
     };
