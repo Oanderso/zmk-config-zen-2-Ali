@@ -19,7 +19,6 @@
         zephyr,sram = &sram0;
         zephyr,flash = &flash0;
         zmk,kscan = &kscan0;
-        zmk,display = &epd;
         zephyr,console = &cdc_acm_uart;
         zmk,matrix-transform = &default_transform;
     };
@@ -58,6 +57,29 @@
         >;
     };
 
+    /*
+     * The TPS43 lives on the right/peripheral half. ZMK's input-split node
+     * forwards its relative pointer events to the left/central half.
+     */
+    split_inputs {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        tps43_split: tps43_split@0 {
+            compatible = "zmk,input-split";
+            reg = <0>;
+        };
+    };
+
+    /*
+     * This listener is enabled only on the central half. It is intentionally
+     * declared here so both half builds know the node label.
+     */
+    tps43_listener: tps43_listener {
+        compatible = "zmk,input-listener";
+        status = "disabled";
+        device = <&tps43_split>;
+    };
 };
 
 &adc {

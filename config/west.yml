@@ -2,12 +2,28 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
+    - name: aym1607
+      url-base: https://github.com/AYM1607
+    - name: amgskobo
+      url-base: https://github.com/amgskobo
+
   projects:
     - name: zmk
       remote: zmkfirmware
-      #revision: main # This is the original that updates automatically, but will break the builds cause of compatability issues.
+      # Keep the existing Zen v2 firmware base pinned for compatibility.
       revision: v0.2
       import: app/west.yml
+
+    # IQS5xx driver. TPS43 is explicitly listed as tested by this driver.
+    - name: zmk-driver-azoteq-iqs5xx
+      remote: aym1607
+      revision: 27321f0232b50f0af31eb27ff97d539933467ea4
+
+    # Relative-motion inertia processor. This revision uses the endpoint API
+    # present in the ZMK v0.2 firmware base used by this repository.
+    - name: zmk-input-inertia
+      remote: amgskobo
+      revision: 57cea03b24ab87c031516abf8d0ab78a8339097b
+
   self:
     path: config
-
