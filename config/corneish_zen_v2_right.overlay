@@ -63,15 +63,20 @@
 
     /*
      * The right half is the split central, so the TPS43 feeds ZMK's pointing
-     * pipeline directly. Pointer X/Y movement is scaled to 4/3 (~133%).
-     * Scroll events are scaled to 15/8 (187.5%), which is 50% faster than the
-     * previous 5/4 (125%) scroll setting. Cursor inertia remains effectively
-     * disabled below to preserve the stable direct-touch tracking behavior.
+     * pipeline directly. Pointer X/Y movement stays at 4/3 (~133%).
+     * Scroll uses two safe scaler stages: 15/8 followed by 9/5, for a combined
+     * factor of 27/8 (337.5%). This is exactly 80% faster than the previous
+     * 15/8 (187.5%) setting while keeping each scaler parameter <= 16.
+     * Cursor inertia remains effectively disabled below to preserve the stable
+     * direct-touch tracking behavior.
      */
     tps43_input: tps43_input {
         compatible = "zmk,input-listener";
         device = <&tps43>;
-        input-processors = <&zip_xy_scaler 4 3>, <&zip_scroll_scaler 15 8>, <&zip_inertia>;
+        input-processors = <&zip_xy_scaler 4 3>,
+                           <&zip_scroll_scaler 15 8>,
+                           <&zip_scroll_scaler 9 5>,
+                           <&zip_inertia>;
     };
 };
 
