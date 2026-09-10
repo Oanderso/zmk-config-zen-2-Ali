@@ -10,12 +10,6 @@
 #include <dt-bindings/zmk/rgb.h>
 
 / {
-    chosen {
-        zmk,matrix_transform = &default_transform;
-
-        // zmk,matrix_transform = &five_column_transform;
-    };
-
     behaviors {
         td0: td0 {
             compatible = "zmk,behavior-tap-dance";
