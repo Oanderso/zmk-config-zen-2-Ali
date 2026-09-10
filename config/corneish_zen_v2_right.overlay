@@ -18,10 +18,12 @@
         /*
          * ZMK Studio requires the physical-layout system rather than the
          * legacy chosen matrix-transform path. The board definition already
-         * provides the Corne 6-column physical layout, so remove only the
-         * legacy chosen transform inherited from this config's dtsi.
+         * provides the Corne 6-column physical layout. Remove both legacy
+         * spellings because this config/board combination produces the
+         * underscore form in the final devicetree.
          */
         /delete-property/ zmk,matrix-transform;
+        /delete-property/ zmk,matrix_transform;
 
         zmk,battery = &vbatt;
         zmk,underglow = &led_strip;
