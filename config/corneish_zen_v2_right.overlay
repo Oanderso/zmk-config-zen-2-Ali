@@ -36,7 +36,7 @@
         row-gpios
             = <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio0 24 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio1 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 0 GPIO_ACTIVE_HIGH>
             , <&gpio0 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             ;
 
@@ -62,10 +62,12 @@
     };
 
     /*
-     * The right half is now the split central, so the TPS43 feeds ZMK's
-     * pointing pipeline directly. Scroll events are scaled to 125% before
-     * inertia samples them, so both direct scrolling and inertial scrolling
-     * use the faster velocity. Cursor X/Y movement is not scaled.
+     * The right half is the split central, so the TPS43 feeds ZMK's pointing
+     * pipeline directly. Scroll events are scaled to 125% before inertia.
+     * Cursor inertia is intentionally disabled below: this inertia module only
+     * sees relative motion events and cannot tell a stationary finger from a
+     * lifted finger, which can cause false stop/restart cycles and cursor jumps
+     * on a touchpad.
      */
     tps43_input: tps43_input {
         compatible = "zmk,input-listener";
@@ -83,21 +85,28 @@
 };
 
 /*
- * Trackball-like cursor momentum, tuned for a ~60 Hz update cadence.
- * The shorter 16 ms reporting intervals reduce visible stepping. Decay values
- * are raised to preserve roughly the same overall glide duration as the
- * original 20 ms / 93% movement and 50 ms / 85% scroll settings.
+ * Stability-first inertia tuning.
+ *
+ * Pointer inertia is disabled by setting its start threshold to the maximum
+ * signed 16-bit relative value. Direct cursor movement therefore follows only
+ * the TPS43's own filtering, without a timer interpreting brief gaps in motion
+ * as a finger lift.
+ *
+ * Scroll inertia remains enabled. A 60 ms trigger tolerates short report gaps,
+ * while a start threshold of one wheel unit lets short two-finger scrolls arm
+ * inertia as soon as the driver emits a wheel event.
  */
 &zip_inertia {
-    trigger-ms = <30>;
-    move-decay-factor-int = <94>;
-    move-report-interval-ms = <16>;
-    move-threshold-start = <8>;
+    trigger-ms = <60>;
+
+    move-decay-factor-int = <0>;
+    move-report-interval-ms = <20>;
+    move-threshold-start = <32767>;
     move-threshold-stop = <1>;
 
-    scroll-decay-factor-int = <95>;
-    scroll-report-interval-ms = <16>;
-    scroll-threshold-start = <2>;
+    scroll-decay-factor-int = <88>;
+    scroll-report-interval-ms = <35>;
+    scroll-threshold-start = <1>;
     scroll-threshold-stop = <0>;
 };
 
@@ -185,11 +194,13 @@
         /* Conventional wheel direction: natural-scroll flags intentionally off. */
         scroll;
 
+        /*
+         * Keep the chip's strong low-speed filtering, but reduce the stationary
+         * boundary so small deliberate motion leaves idle-touch sooner and slow
+         * finger movement is less likely to disappear between reports.
+         */
         bottom-beta = <5>;
-        /* Keep the original motion threshold so small movements continue to
-         * generate input events instead of being mistaken for finger release
-         * by the inertia timer. */
-        stationary-threshold = <5>;
+        stationary-threshold = <3>;
 
         /* Physical mounting currently swaps the X and Y axes. */
         switch-xy;
