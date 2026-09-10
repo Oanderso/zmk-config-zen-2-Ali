@@ -163,6 +163,7 @@
         reset-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
         rdy-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
 
+        /* Single-finger tap is reported by the driver as BTN_0 (left click). */
         one-finger-tap;
         two-finger-tap;
         press-and-hold;
@@ -173,7 +174,8 @@
         natural-scroll-y;
 
         bottom-beta = <5>;
-        stationary-threshold = <5>;
+        /* Be more tolerant of the tiny motion that happens during a tap. */
+        stationary-threshold = <12>;
 
         /* Physical mounting currently swaps the X and Y axes. */
         switch-xy;
