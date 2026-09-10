@@ -174,8 +174,10 @@
         natural-scroll-y;
 
         bottom-beta = <5>;
-        /* Be more tolerant of the tiny motion that happens during a tap. */
-        stationary-threshold = <12>;
+        /* Keep the original motion threshold so small movements continue to
+         * generate input events instead of being mistaken for finger release
+         * by the inertia timer. */
+        stationary-threshold = <5>;
 
         /* Physical mounting currently swaps the X and Y axes. */
         switch-xy;
