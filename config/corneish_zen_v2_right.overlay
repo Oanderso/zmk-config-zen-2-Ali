@@ -6,6 +6,7 @@
 */
 #include "corneish_zen.dtsi"
 #include <dt-bindings/led/led.h>
+#include <input/processors.dtsi>
 #include <zmk-input-inertia/input/processor/input_inertia.dtsi>
 
 / {
@@ -13,6 +14,15 @@
         /* The physical right-side e-ink panel has been removed. */
         /delete-property/ zephyr,display;
         /delete-property/ zmk,display;
+
+        /*
+         * ZMK Studio requires the physical-layout system rather than the
+         * legacy chosen matrix-transform path. The board definition already
+         * provides the Corne 6-column physical layout, so remove only the
+         * legacy chosen transform inherited from this config's dtsi.
+         */
+        /delete-property/ zmk,matrix-transform;
+
         zmk,battery = &vbatt;
         zmk,underglow = &led_strip;
     };
@@ -51,13 +61,14 @@
 
     /*
      * The right half is now the split central, so the TPS43 feeds ZMK's
-     * pointing pipeline directly. Cursor inertia therefore runs locally and
-     * does not consume split-link bandwidth.
+     * pointing pipeline directly. Scroll events are scaled to 125% before
+     * inertia samples them, so both direct scrolling and inertial scrolling
+     * use the faster velocity. Cursor X/Y movement is not scaled.
      */
     tps43_input: tps43_input {
         compatible = "zmk,input-listener";
         device = <&tps43>;
-        input-processors = <&zip_inertia>;
+        input-processors = <&zip_scroll_scaler 5 4>, <&zip_inertia>;
     };
 };
 
@@ -169,9 +180,8 @@
         press-and-hold;
         press-and-hold-time = <250>;
 
+        /* Conventional wheel direction: natural-scroll flags intentionally off. */
         scroll;
-        natural-scroll-x;
-        natural-scroll-y;
 
         bottom-beta = <5>;
         /* Keep the original motion threshold so small movements continue to
