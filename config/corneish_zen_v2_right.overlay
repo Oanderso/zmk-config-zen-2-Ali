@@ -63,16 +63,15 @@
 
     /*
      * The right half is the split central, so the TPS43 feeds ZMK's pointing
-     * pipeline directly. Scroll events are scaled to 125% before inertia.
-     * Cursor inertia is intentionally disabled below: this inertia module only
-     * sees relative motion events and cannot tell a stationary finger from a
-     * lifted finger, which can cause false stop/restart cycles and cursor jumps
-     * on a touchpad.
+     * pipeline directly. Pointer X/Y movement is scaled to 4/3 (~133%).
+     * Scroll events are scaled to 15/8 (187.5%), which is 50% faster than the
+     * previous 5/4 (125%) scroll setting. Cursor inertia remains effectively
+     * disabled below to preserve the stable direct-touch tracking behavior.
      */
     tps43_input: tps43_input {
         compatible = "zmk,input-listener";
         device = <&tps43>;
-        input-processors = <&zip_scroll_scaler 5 4>, <&zip_inertia>;
+        input-processors = <&zip_xy_scaler 4 3>, <&zip_scroll_scaler 15 8>, <&zip_inertia>;
     };
 };
 
