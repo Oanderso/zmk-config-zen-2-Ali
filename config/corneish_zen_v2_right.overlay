@@ -175,6 +175,7 @@
         bottom-beta = <5>;
         stationary-threshold = <5>;
 
-        /* Add switch-xy / flip-x / flip-y here if mounting orientation needs it. */
+        /* Physical mounting currently swaps the X and Y axes. */
+        switch-xy;
     };
 };
