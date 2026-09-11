@@ -3,10 +3,8 @@ include:
     cmake-args: -DEXTRA_CONF_FILE=${GITHUB_WORKSPACE}/config/corneish_zen_v2_left.conf
 
   - board: corneish_zen_v2_right
-    snippet: studio-rpc-usb-uart
-    # zmk-input-inertia revision 57cea03 predates its upstream GitHub Actions
-    # include-path fix. Keep that revision for the ZMK v0.3 endpoint API, and
-    # supply the missing ZMK application include directory to this build only.
+    # Diagnostic build: omit the Studio USB-UART snippet so USB CDC is free for
+    # ZMK runtime logging. Keep the inertia include-path workaround unchanged.
     cmake-args: -DEXTRA_CONF_FILE=${GITHUB_WORKSPACE}/config/corneish_zen_v2_right.conf -DCMAKE_C_FLAGS=-I${GITHUB_WORKSPACE}/zmk/app/include
 
   - board: nice_nano_v2
