@@ -1,0 +1,6 @@
+rsource "drivers/input/Kconfig"
+
+config ZMK_INPUT_PROCESSOR_RELEASE_INERTIA
+    bool
+    default y if DT_HAS_ZMK_INPUT_PROCESSOR_RELEASE_INERTIA_ENABLED
+    depends on ZMK_POINTING && ZMK_SPLIT_ROLE_CENTRAL

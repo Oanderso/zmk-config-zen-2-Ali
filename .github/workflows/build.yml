@@ -1,5 +1,14 @@
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
+  cursor-inertia-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test release-only cursor glide
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_cursor_glide.c -o /tmp/test-cursor-glide
+          /tmp/test-cursor-glide
   build:
+    needs: cursor-inertia-tests
     uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3.0

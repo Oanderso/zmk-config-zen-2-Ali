@@ -1,6 +1,7 @@
 build/
 zmk/
 zephyr/
-modules/
+modules/*
+!modules/tps43-release-inertia/
 tools/
 .west/

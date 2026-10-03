@@ -2,8 +2,6 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    - name: aym1607
-      url-base: https://github.com/AYM1607
     - name: amgskobo
       url-base: https://github.com/amgskobo
 
@@ -13,10 +11,8 @@ manifest:
       revision: v0.3.0
       import: app/west.yml
 
-    # IQS5xx driver. TPS43 is explicitly supported by this driver.
-    - name: zmk-driver-azoteq-iqs5xx
-      remote: aym1607
-      revision: 27321f0232b50f0af31eb27ff97d539933467ea4
+    # The pinned IQS5xx driver is vendored in modules/tps43-release-inertia
+    # with explicit finger-contact reports for release-only cursor glide.
 
     # Keep the older inertia implementation because it uses the plural
     # zmk_endpoints_* API provided by ZMK v0.3.0. The build matrix supplies

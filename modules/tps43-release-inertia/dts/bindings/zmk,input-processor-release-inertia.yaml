@@ -1,0 +1,19 @@
+description: Cursor glide gated by explicit TPS43 finger contact
+compatible: "zmk,input-processor-release-inertia"
+include: ip_zero_param.yaml
+properties:
+  report-interval-ms:
+    type: int
+    default: 20
+  release-window-ms:
+    type: int
+    default: 80
+  start-threshold:
+    type: int
+    default: 3
+  stop-threshold:
+    type: int
+    default: 1
+  retention-percent:
+    type: int
+    default: 90

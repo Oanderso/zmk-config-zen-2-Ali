@@ -1,0 +1,3 @@
+zephyr_library()
+zephyr_library_sources_ifdef(CONFIG_INPUT_AZOTEQ_IQS5XX drivers/input/iqs5xx.c)
+zephyr_library_sources_ifdef(CONFIG_ZMK_INPUT_PROCESSOR_RELEASE_INERTIA src/release_inertia.c)

@@ -62,42 +62,29 @@ The IQS5xx driver provides:
 - two-finger horizontal and vertical scrolling
 - relative X/Y pointer movement
 
-The TPS43 feeds a local `zmk,input-listener` on the right central half, and
-`zmk-input-inertia` processes the relative pointer events there. A quick finger
-flick therefore continues moving the cursor and decelerates after lift, similar
-to a trackball.
+The TPS43 feeds a local input listener on the right central half. The vendored
+driver reports actual finger contact to a release-only cursor processor.
+Manual movement keeps the existing scaling and gets no added inertia. A recent
+one-finger flick glides only after lift; a new touch immediately brakes it.
+Clicks, dragging, palms and multi-finger/scroll gestures suppress cursor glide.
+Holding still before lifting also prevents a glide.
+
+The existing upstream inertia processor remains responsible for scrolling,
+with its previous settings unchanged and its timer-based cursor inertia disabled.
 
 ### Momentum tuning
 
-The defaults are in `config/corneish_zen_v2_right.overlay`:
+The `zip_cursor_release` node in `config/corneish_zen_v2_right.overlay` sets:
 
-```dts
-&zip_inertia {
-    trigger-ms = <30>;
-    move-decay-factor-int = <93>;
-    move-report-interval-ms = <20>;
-    move-threshold-start = <8>;
-    move-threshold-stop = <1>;
+- `retention-percent = <90>`: increase for longer glide; keep below 100.
+- `report-interval-ms = <20>`: glide update cadence.
+- `start-threshold = <3>`: minimum velocity in counts per glide report.
+- `stop-threshold = <1>`: stop once the remaining velocity is small.
+- `release-window-ms = <80>`: final movement must be this recent at lift.
 
-    scroll-decay-factor-int = <85>;
-    scroll-report-interval-ms = <50>;
-    scroll-threshold-start = <2>;
-    scroll-threshold-stop = <0>;
-};
-```
+Two movement frames are required to estimate velocity. See
+`modules/tps43-release-inertia/README.md` for driver provenance and tests.
 
-Useful adjustments:
-
-- **Longer glide:** raise `move-decay-factor-int` toward 95-97.
-- **Shorter glide:** lower it toward 88-91.
-- **Make momentum easier to trigger:** lower `move-threshold-start`.
-- **Reduce accidental momentum:** raise `move-threshold-start`.
-- **If momentum starts before the finger actually lifts:** raise `trigger-ms`
-  (for example 35-40 ms).
-- **Smoother/faster inertia updates:** lower `move-report-interval-ms`, at the
-  cost of slightly more CPU activity.
-
-Do not set the decay factor to 100: inertia would not naturally decay.
 
 ## Orientation
 
@@ -119,7 +106,9 @@ Use only the properties needed for the actual physical orientation.
 `config/west.yml` pins:
 
 - ZMK firmware `v0.3.0`.
-- `AYM1607/zmk-driver-azoteq-iqs5xx` for the TPS43/IQS5xx hardware driver.
+- The TPS43/IQS5xx driver is vendored in `modules/tps43-release-inertia`
+  from `AYM1607/zmk-driver-azoteq-iqs5xx` revision
+  `27321f0232b50f0af31eb27ff97d539933467ea4`, with contact reporting added.
 - `amgskobo/zmk-input-inertia` at revision
   `57cea03b24ab87c031516abf8d0ab78a8339097b`.
 

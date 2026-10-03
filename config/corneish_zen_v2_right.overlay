@@ -67,8 +67,7 @@
      * Scroll uses two safe scaler stages: 15/8 followed by 9/5, for a combined
      * factor of 27/8 (337.5%). This is exactly 80% faster than the previous
      * 15/8 (187.5%) setting while keeping each scaler parameter <= 16.
-     * Cursor inertia remains effectively disabled below to preserve the stable
-     * direct-touch tracking behavior.
+     * Cursor glide uses explicit finger contact and leaves manual deltas alone.
      */
     tps43_input: tps43_input {
         compatible = "zmk,input-listener";
@@ -76,7 +75,18 @@
         input-processors = <&zip_xy_scaler 4 3>,
                            <&zip_scroll_scaler 15 8>,
                            <&zip_scroll_scaler 9 5>,
+                           <&zip_cursor_release>,
                            <&zip_inertia>;
+    };
+
+    zip_cursor_release: cursor_release_inertia {
+        compatible = "zmk,input-processor-release-inertia";
+        #input-processor-cells = <0>;
+        report-interval-ms = <20>;
+        release-window-ms = <80>;
+        start-threshold = <3>;
+        stop-threshold = <1>;
+        retention-percent = <90>;
     };
 };
 
@@ -91,10 +101,8 @@
 /*
  * Stability-first inertia tuning.
  *
- * Pointer inertia is disabled by setting its start threshold to the maximum
- * signed 16-bit relative value. Direct cursor movement therefore follows only
- * the TPS43's own filtering, without a timer interpreting brief gaps in motion
- * as a finger lift.
+ * The old timeout-based cursor inertia stays disabled. Cursor glide is handled
+ * by zip_cursor_release above, which requires an explicit one-finger lift.
  *
  * Scroll inertia remains enabled. A 60 ms trigger tolerates short report gaps,
  * while a start threshold of one wheel unit lets short two-finger scrolls arm
