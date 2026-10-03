@@ -1,6 +1,6 @@
 build/
 zmk/
-zephyr/
+/zephyr/
 modules/*
 !modules/tps43-release-inertia/
 tools/
