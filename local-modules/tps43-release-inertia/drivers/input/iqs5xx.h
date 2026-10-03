@@ -137,6 +137,8 @@ struct iqs5xx_config {
     uint8_t stationary_threshold;
 };
 
+#include "tps43_buttons.h"
+
 struct iqs5xx_data {
     const struct device *dev;
     struct gpio_callback rdy_cb;
@@ -144,9 +146,7 @@ struct iqs5xx_data {
     struct k_work_delayable button_release_work;
     // TODO: Pack flags into a bitfield to save space.
     bool initialized;
-    // Flag to indicate if the button was pressed in a previous cycle.
-    uint8_t buttons_pressed;
-    bool active_hold;
+    struct tps43_buttons buttons;
     // Scroll accumulators.
     int16_t scroll_x_acc;
     int16_t scroll_y_acc;

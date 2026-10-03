@@ -3,7 +3,13 @@
 The IQS5xx driver and bindings are vendored from
 `AYM1607/zmk-driver-azoteq-iqs5xx` at
 `27321f0232b50f0af31eb27ff97d539933467ea4` under its MIT license.
-The hardware configuration, gesture handling and relative motion are retained.
+The hardware configuration, gesture recognition and relative motion are retained.
+Tap pulses and press-and-hold share one trackpad button owner. A new tap closes
+the previous pulse before pressing again; its timeout cannot release an active
+drag. Hold transitions no longer discard taps or movement in the same frame.
+Sensor reset/read errors release only the trackpad's owned buttons, leaving
+keyboard mouse-key ownership intact. These cases are covered by
+`tests/test_tps43_buttons.c`, run alongside the cursor tests in CI.
 The driver now reports finger count through ABS_MISC on every ready frame and
 sets an immediate atomic contact gate before queuing those reports. Palm,
 excess-finger and communication/reset conditions inhibit cursor glide.

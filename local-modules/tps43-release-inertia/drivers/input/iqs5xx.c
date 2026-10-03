@@ -64,21 +64,22 @@ static int iqs5xx_end_comm_window(const struct device *dev) {
     return i2c_write_dt(&config->i2c, buf, sizeof(buf));
 }
 
+static void iqs5xx_emit_button(void *context, unsigned button, bool down) {
+    struct iqs5xx_data *data = context;
+    input_report_key(data->dev, INPUT_BTN_0 + button, down ? 1 : 0, true, K_FOREVER);
+}
+
+static void iqs5xx_clear_buttons(struct iqs5xx_data *data) {
+    k_work_cancel_delayable(&data->button_release_work);
+    tps43_buttons_reset(&data->buttons, iqs5xx_emit_button, data);
+}
+
 static void iqs5xx_button_release_work_handler(struct k_work *work) {
     struct k_work_delayable *dwork = k_work_delayable_from_work(work);
     struct iqs5xx_data *data = CONTAINER_OF(dwork, struct iqs5xx_data, button_release_work);
 
-    // TODO: This loop should only deactivate one button.
-    // Log a warning when that is not the case.
-    for (int i = 0; i < 3; i++) {
-        LOG_INF("Releasing synthetic button");
-        if (data->buttons_pressed & BIT(i)) {
-            input_report_key(data->dev, INPUT_BTN_0 + i, 0, true, K_FOREVER);
-            // Turn off the bit.
-            // NOTE: This is a potential race.
-            data->buttons_pressed &= ~BIT(i);
-        }
-    }
+    /* Both handlers run on the system work queue, serializing ownership. */
+    tps43_buttons_release_taps(&data->buttons, iqs5xx_emit_button, data);
 }
 
 static void iqs5xx_work_handler(struct k_work *work) {
@@ -115,6 +116,7 @@ static void iqs5xx_work_handler(struct k_work *work) {
 
     // Handle reset indication.
     if (sys_info_0 & IQS5XX_SHOW_RESET) {
+        iqs5xx_clear_buttons(data);
         atomic_set(&tps43_contact_present, 1);
         input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, 255, true, K_FOREVER);
         LOG_INF("Device reset detected");
@@ -154,9 +156,6 @@ static void iqs5xx_work_handler(struct k_work *work) {
         button_code = INPUT_BTN_1;
     }
 
-    bool hold_became_active = (gesture_events_0 & IQS5XX_PRESS_AND_HOLD) && !data->active_hold;
-    bool hold_released = !(gesture_events_0 & IQS5XX_PRESS_AND_HOLD) && data->active_hold;
-
     int16_t rel_x, rel_y;
     if (tp_movement || scroll) {
         ret = iqs5xx_read_reg16(dev, IQS5XX_REL_X, (uint16_t *)&rel_x);
@@ -176,25 +175,16 @@ static void iqs5xx_work_handler(struct k_work *work) {
     //
     // Each one of these branches needs to send the last report it makes as
     // sync to ensure that the input subsystem processes things in order.
-    if (hold_became_active) {
-        LOG_INF("Hold became active");
-        input_report_key(dev, LEFT_BUTTON_CODE, 1, true, K_FOREVER);
-        data->active_hold = true;
-    } else if (hold_released) {
-        LOG_INF("Hold became inactive");
-        input_report_key(dev, LEFT_BUTTON_CODE, 0, true, K_FOREVER);
-        data->active_hold = false;
-    } else if (button_pressed) {
-        // Cancel any pending release.
-        k_work_cancel_delayable(&data->button_release_work);
-
-        // Press the button immediately.
-        input_report_key(dev, button_code, 1, true, K_FOREVER);
-        data->buttons_pressed |= BIT(button_code - INPUT_BTN_0);
-
-        // Schedule release after 100ms.
-        k_work_schedule(&data->button_release_work, K_MSEC(100));
-    } else if (scroll) {
+    /* A hold transition must not swallow a tap or movement in the same frame. */
+    tps43_buttons_hold(&data->buttons,
+                       (gesture_events_0 & IQS5XX_PRESS_AND_HOLD) && num_fingers != 0,
+                       iqs5xx_emit_button, data);
+    if (button_pressed) {
+        tps43_buttons_tap(&data->buttons, button_code - INPUT_BTN_0,
+                         iqs5xx_emit_button, data);
+        k_work_reschedule(&data->button_release_work, K_MSEC(100));
+    }
+    if (scroll) {
         // TODO: Expose this divisor.
         int16_t scroll_div = 32;
 
@@ -235,6 +225,7 @@ static void iqs5xx_work_handler(struct k_work *work) {
 
 end_comm:
     if (ret < 0) {
+        iqs5xx_clear_buttons(data);
         atomic_set(&tps43_contact_present, 1);
         input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, 255, true, K_FOREVER);
     }
