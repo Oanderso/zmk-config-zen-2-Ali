@@ -128,7 +128,6 @@ static void iqs5xx_work_handler(struct k_work *work) {
     ret = iqs5xx_read_reg8(dev, IQS5XX_NUM_FINGERS, &num_fingers);
     if (ret < 0) {
         atomic_set(&tps43_contact_present, 1);
-        input_report_abs(dev, INPUT_ABS_MISC, 255, true, K_FOREVER);
         goto end_comm;
     }
     if (sys_info_1 & (IQS5XX_PALM_DETECT | IQS5XX_TOO_MANY_FINGERS)) {
@@ -237,6 +236,7 @@ static void iqs5xx_work_handler(struct k_work *work) {
 end_comm:
     if (ret < 0) {
         atomic_set(&tps43_contact_present, 1);
+        input_report_abs(dev, INPUT_ABS_MISC, 255, true, K_FOREVER);
     }
     // End communication window.
     iqs5xx_end_comm_window(dev);
