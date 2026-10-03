@@ -52,7 +52,7 @@ static int handle_event(const struct device *dev, struct input_event *event,
     const struct cursor_glide_config *cfg = dev->config;
     int result = ZMK_INPUT_PROC_CONTINUE;
     k_mutex_lock(&data->lock, K_FOREVER);
-    if (event->type == INPUT_EV_ABS && event->code == INPUT_ABS_MISC) {
+    if (event->type == INPUT_EV_ABS && event->code == TPS43_INPUT_CONTACT_CODE) {
         cursor_glide_contact(&data->cursor, cfg, event->value, k_uptime_get_32());
         if (data->cursor.active) {
             k_work_reschedule(&data->work, K_MSEC(cfg->interval_ms));

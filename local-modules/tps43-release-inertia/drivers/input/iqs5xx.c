@@ -116,7 +116,7 @@ static void iqs5xx_work_handler(struct k_work *work) {
     // Handle reset indication.
     if (sys_info_0 & IQS5XX_SHOW_RESET) {
         atomic_set(&tps43_contact_present, 1);
-        input_report_abs(dev, INPUT_ABS_MISC, 255, true, K_FOREVER);
+        input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, 255, true, K_FOREVER);
         LOG_INF("Device reset detected");
         // Acknowledge reset.
         iqs5xx_write_reg8(dev, IQS5XX_SYSTEM_CONTROL_0, IQS5XX_ACK_RESET);
@@ -134,7 +134,7 @@ static void iqs5xx_work_handler(struct k_work *work) {
         num_fingers = 255;
     }
     atomic_set(&tps43_contact_present, num_fingers != 0);
-    input_report_abs(dev, INPUT_ABS_MISC, num_fingers, true, K_FOREVER);
+    input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, num_fingers, true, K_FOREVER);
 
     bool tp_movement = (sys_info_1 & IQS5XX_TP_MOVEMENT) != 0;
     bool scroll = (gesture_events_1 & IQS5XX_SCROLL) != 0;
@@ -236,7 +236,7 @@ static void iqs5xx_work_handler(struct k_work *work) {
 end_comm:
     if (ret < 0) {
         atomic_set(&tps43_contact_present, 1);
-        input_report_abs(dev, INPUT_ABS_MISC, 255, true, K_FOREVER);
+        input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, 255, true, K_FOREVER);
     }
     // End communication window.
     iqs5xx_end_comm_window(dev);
