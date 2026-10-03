@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-#include "../modules/tps43-release-inertia/src/cursor_glide.h"
+#include "../local-modules/tps43-release-inertia/src/cursor_glide.h"
 
 static const struct cursor_glide_config cfg = {20, 80, 3, 1, 90};
 

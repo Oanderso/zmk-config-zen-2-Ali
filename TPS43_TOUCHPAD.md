@@ -83,7 +83,7 @@ The `zip_cursor_release` node in `config/corneish_zen_v2_right.overlay` sets:
 - `release-window-ms = <80>`: final movement must be this recent at lift.
 
 Two movement frames are required to estimate velocity. See
-`modules/tps43-release-inertia/README.md` for driver provenance and tests.
+`local-modules/tps43-release-inertia/README.md` for driver provenance and tests.
 
 
 ## Orientation
@@ -106,7 +106,7 @@ Use only the properties needed for the actual physical orientation.
 `config/west.yml` pins:
 
 - ZMK firmware `v0.3.0`.
-- The TPS43/IQS5xx driver is vendored in `modules/tps43-release-inertia`
+- The TPS43/IQS5xx driver is vendored in `local-modules/tps43-release-inertia`
   from `AYM1607/zmk-driver-azoteq-iqs5xx` revision
   `27321f0232b50f0af31eb27ff97d539933467ea4`, with contact reporting added.
 - `amgskobo/zmk-input-inertia` at revision

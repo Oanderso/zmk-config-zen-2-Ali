@@ -11,7 +11,7 @@ manifest:
       revision: v0.3.0
       import: app/west.yml
 
-    # The pinned IQS5xx driver is vendored in modules/tps43-release-inertia
+    # The pinned IQS5xx driver is vendored in local-modules/tps43-release-inertia
     # with explicit finger-contact reports for release-only cursor glide.
 
     # Keep the older inertia implementation because it uses the plural
