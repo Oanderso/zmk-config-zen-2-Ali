@@ -60,7 +60,22 @@ The IQS5xx driver provides:
 - two-finger tap -> right click
 - press-and-hold -> left click-and-drag
 - two-finger horizontal and vertical scrolling
+- three-finger swipe up -> Windows Task View (`Win+Tab`)
+- three-finger swipe down -> toggle desktop (`Win+D`)
 - relative X/Y pointer movement
+
+Three-finger shortcuts require about 4 mm of predominantly vertical travel,
+with all three tracked fingers moving in the same direction. Each touch
+sequence fires at most once; lift all fingers before trying another swipe.
+Cursor movement, scrolling, and taps are suppressed after three fingers are
+detected, including staggered releases. Palms, extra fingers, tracking changes,
+and sensor errors cancel recognition until a full lift. A trackpad drag already
+in progress also prevents recognition. These are keyboard shortcuts, not native
+Windows Precision Touchpad gestures; horizontal scrolling depends on the app
+supporting a horizontal mouse wheel.
+
+For this gesture update on an already-working right-central installation,
+flash only `corneish_zen_v2_right-zmk.uf2`. No Bluetooth reset is needed.
 
 The TPS43 feeds a local input listener on the right central half. The vendored
 driver reports actual finger contact to a release-only cursor processor.

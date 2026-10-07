@@ -138,12 +138,16 @@ struct iqs5xx_config {
 };
 
 #include "tps43_buttons.h"
+#include "tps43_swipe.h"
 
 struct iqs5xx_data {
     const struct device *dev;
     struct gpio_callback rdy_cb;
     struct k_work work;
     struct k_work_delayable button_release_work;
+    struct k_work_delayable shortcut_release_work;
+    uint32_t shortcut;
+    struct tps43_swipe swipe;
     // TODO: Pack flags into a bitfield to save space.
     bool initialized;
     struct tps43_buttons buttons;

@@ -13,6 +13,10 @@ jobs:
         run: |
           cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_tps43_buttons.c -o /tmp/test-tps43-buttons
           /tmp/test-tps43-buttons
+      - name: Test three-finger swipe recognition
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_tps43_swipe.c -o /tmp/test-tps43-swipe
+          /tmp/test-tps43-swipe
   build:
     needs: cursor-inertia-tests
     uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3.0

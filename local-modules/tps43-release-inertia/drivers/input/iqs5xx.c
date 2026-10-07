@@ -16,6 +16,8 @@
 
 #include "iqs5xx.h"
 #include "tps43_contact.h"
+#include <dt-bindings/zmk/keys.h>
+#include <zmk/events/keycode_state_changed.h>
 
 atomic_t tps43_contact_present = ATOMIC_INIT(1);
 
@@ -82,6 +84,44 @@ static void iqs5xx_button_release_work_handler(struct k_work *work) {
     tps43_buttons_release_taps(&data->buttons, iqs5xx_emit_button, data);
 }
 
+static void iqs5xx_release_shortcut(struct iqs5xx_data *data) {
+    if (data->shortcut) {
+        raise_zmk_keycode_state_changed_from_encoded(data->shortcut, false, k_uptime_get());
+        data->shortcut = 0;
+    }
+}
+
+static void iqs5xx_shortcut_release_work_handler(struct k_work *work) {
+    struct iqs5xx_data *data = CONTAINER_OF(k_work_delayable_from_work(work),
+                                          struct iqs5xx_data, shortcut_release_work);
+    iqs5xx_release_shortcut(data);
+}
+
+static int iqs5xx_three_finger_frame(struct iqs5xx_data *data) {
+    const struct iqs5xx_config *config = data->dev->config;
+    uint8_t address[2] = {0, IQS5XX_ABS_X};
+    uint8_t frame[35];
+    int ret = i2c_write_read_dt(&config->i2c, address, sizeof(address), frame, sizeof(frame));
+    if (ret < 0) { return ret; }
+    struct tps43_point points[5];
+    uint8_t mask = 0;
+    for (unsigned i = 0; i < 5; i++) {
+        const uint8_t *p = &frame[i * 7];
+        points[i] = (struct tps43_point){(p[0] << 8) | p[1], (p[2] << 8) | p[3]};
+        /* Touch strength and area distinguish live slots from cleared slots.
+         * Do not assume the three fingers occupy the first three slots. */
+        if ((p[4] || p[5]) && p[6]) { mask |= 1u << i; }
+    }
+    int direction = tps43_swipe_sample(&data->swipe, mask, points);
+    if (direction) {
+        iqs5xx_release_shortcut(data);
+        data->shortcut = direction < 0 ? LG(TAB) : LG(D);
+        raise_zmk_keycode_state_changed_from_encoded(data->shortcut, true, k_uptime_get());
+        k_work_reschedule(&data->shortcut_release_work, K_MSEC(50));
+    }
+    return 0;
+}
+
 static void iqs5xx_work_handler(struct k_work *work) {
     struct iqs5xx_data *data = CONTAINER_OF(work, struct iqs5xx_data, work);
     const struct device *dev = data->dev;
@@ -117,6 +157,8 @@ static void iqs5xx_work_handler(struct k_work *work) {
     // Handle reset indication.
     if (sys_info_0 & IQS5XX_SHOW_RESET) {
         iqs5xx_clear_buttons(data);
+        iqs5xx_release_shortcut(data);
+        tps43_swipe_contact(&data->swipe, 255);
         atomic_set(&tps43_contact_present, 1);
         input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, 255, true, K_FOREVER);
         LOG_INF("Device reset detected");
@@ -135,8 +177,21 @@ static void iqs5xx_work_handler(struct k_work *work) {
     if (sys_info_1 & (IQS5XX_PALM_DETECT | IQS5XX_TOO_MANY_FINGERS)) {
         num_fingers = 255;
     }
+    bool was_captured = data->swipe.captured;
+    tps43_swipe_contact(&data->swipe, num_fingers);
     atomic_set(&tps43_contact_present, num_fingers != 0);
-    input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, num_fingers, true, K_FOREVER);
+    input_report_abs(dev, TPS43_INPUT_CONTACT_CODE,
+                     data->swipe.captured || was_captured ? 255 : num_fingers,
+                     true, K_FOREVER);
+    if (data->swipe.captured || was_captured) {
+        if (!was_captured && data->buttons.reported) { data->swipe.finished = true; }
+        iqs5xx_clear_buttons(data);
+        data->scroll_x_acc = data->scroll_y_acc = 0;
+        if (num_fingers == 3 && !data->swipe.finished) {
+            ret = iqs5xx_three_finger_frame(data);
+        }
+        goto end_comm;
+    }
 
     bool tp_movement = (sys_info_1 & IQS5XX_TP_MOVEMENT) != 0;
     bool scroll = (gesture_events_1 & IQS5XX_SCROLL) != 0;
@@ -188,8 +243,8 @@ static void iqs5xx_work_handler(struct k_work *work) {
         // TODO: Expose this divisor.
         int16_t scroll_div = 32;
 
-        // Only one scrolling direction is valid at a time.
-        // End the communication right after reporting the movement.
+        // Preserve both axes: a small horizontal component must not swallow
+        // vertical scrolling. Each axis retains its own fractional remainder.
         if (rel_x != 0) {
             // By default the x axis is already "natural".
             if (!config->natural_scroll_x) {
@@ -201,7 +256,6 @@ static void iqs5xx_work_handler(struct k_work *work) {
                                 K_FOREVER);
                 data->scroll_x_acc %= scroll_div;
             }
-            goto end_comm;
         }
         if (rel_y != 0) {
             if (config->natural_scroll_y) {
@@ -214,9 +268,8 @@ static void iqs5xx_work_handler(struct k_work *work) {
                 data->scroll_y_acc %= scroll_div;
             }
 
-            goto end_comm;
         }
-    } else if (tp_movement) {
+    } else if (tp_movement && num_fingers == 1) {
         if (rel_x != 0 || rel_y != 0) {
             input_report_rel(dev, INPUT_REL_X, rel_x, false, K_FOREVER);
             input_report_rel(dev, INPUT_REL_Y, rel_y, true, K_FOREVER);
@@ -226,6 +279,8 @@ static void iqs5xx_work_handler(struct k_work *work) {
 end_comm:
     if (ret < 0) {
         iqs5xx_clear_buttons(data);
+        iqs5xx_release_shortcut(data);
+        tps43_swipe_contact(&data->swipe, 255);
         atomic_set(&tps43_contact_present, 1);
         input_report_abs(dev, TPS43_INPUT_CONTACT_CODE, 255, true, K_FOREVER);
     }
@@ -305,6 +360,10 @@ static int iqs5xx_setup_device(const struct device *dev) {
     }
 
     // Configure axes.
+    /* Module defaults can limit tracking to two fingers. Keep all five slots
+     * available so exactly-three gestures and extra-finger cancellation work. */
+    ret = iqs5xx_write_reg8(dev, 0x066A, 5);
+    if (ret < 0) { return ret; }
     uint8_t xy_config = 0;
     xy_config |= config->flip_x ? IQS5XX_FLIP_X : 0;
     xy_config |= config->flip_y ? IQS5XX_FLIP_Y : 0;
@@ -345,6 +404,7 @@ static int iqs5xx_init(const struct device *dev) {
     data->dev = dev;
     k_work_init(&data->work, iqs5xx_work_handler);
     k_work_init_delayable(&data->button_release_work, iqs5xx_button_release_work_handler);
+    k_work_init_delayable(&data->shortcut_release_work, iqs5xx_shortcut_release_work_handler);
 
     // Configure reset GPIO if available.
     if (config->reset_gpio.port) {

@@ -53,6 +53,20 @@ static int handle_event(const struct device *dev, struct input_event *event,
     int result = ZMK_INPUT_PROC_CONTINUE;
     k_mutex_lock(&data->lock, K_FOREVER);
     if (event->type == INPUT_EV_ABS && event->code == TPS43_INPUT_CONTACT_CODE) {
+        if (event->value >= 3) {
+            /* Brake the existing scroll processor without changing its pinned
+             * implementation. Zero both velocities, including a timer armed
+             * by the two-finger lead-in before the third finger landed. */
+#if DT_NODE_EXISTS(DT_NODELABEL(zip_inertia))
+            const struct device *inertia = DEVICE_DT_GET(DT_NODELABEL(zip_inertia));
+            struct input_event brake = {.type = INPUT_EV_REL, .value = 0, .sync = true};
+            brake.code = INPUT_REL_HWHEEL;
+            zmk_input_processor_handle_event(inertia, &brake, 0, 0, state);
+            brake.code = INPUT_REL_WHEEL;
+            zmk_input_processor_handle_event(inertia, &brake, 0, 0, state);
+#endif
+            data->pending_x = data->pending_y = 0;
+        }
         cursor_glide_contact(&data->cursor, cfg, event->value, k_uptime_get_32());
         if (data->cursor.active) {
             k_work_reschedule(&data->work, K_MSEC(cfg->interval_ms));
